@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#121417">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Дневник тренировок</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Manrope:wght@400;600;700&display=swap">
+<style>
+/* Layout: one phone column; each screen is a full-height stack with a sticky bottom action */
+:root{
+  --bg:#121417; --card:#1c1f24; --field:#2a2e35; --line:#2a2e35;
+  --fg:#f2f2ee; --muted:#a3a8b0; --accent:#ff6a3d; --accent-ink:#121417; --ok:#8fd4a8;
+  --display:"Russo One","Arial Black",system-ui,sans-serif;
+  --body:Manrope,system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--fg);margin:0;min-height:100%}
+body{font-family:var(--body);font-size:15px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+button,input,select{font:inherit;color:inherit}
+a{color:var(--accent)}
+.screen{max-width:480px;margin:0 auto;min-height:100vh;box-sizing:border-box;display:flex;flex-direction:column;
+  padding:max(24px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+.top{display:flex;justify-content:space-between;align-items:center;min-height:44px}
+.link{font-weight:700;text-decoration:none;min-height:44px;display:inline-flex;align-items:center;background:none;border:0;padding:0;color:var(--accent);cursor:pointer;font-size:15px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--display);font-weight:400;font-size:32px;line-height:36px;margin:4px 0 2px}
+.sub{color:var(--muted);margin:0}
+.stack{display:flex;flex-direction:column;gap:10px;padding:16px 0}
+.card{background:var(--card);border-radius:18px;padding:14px 16px;box-sizing:border-box;min-width:0}
+.daycard{display:flex;flex-direction:column;gap:4px;text-decoration:none;color:var(--fg);border:0;text-align:left;cursor:pointer;width:100%}
+.daycard.today{background:var(--accent);color:var(--accent-ink)}
+.daycard.today .eyebrow,.daycard.today .muted{color:var(--accent-ink)}
+.daycard .t{font-family:var(--display);font-size:22px;line-height:27px}
+.muted{color:var(--muted);font-size:14px}
+.strip{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.strip div{height:58px;border-radius:14px;background:#16181c;color:#8a9099;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:600;box-sizing:border-box}
+.strip div b{font-family:var(--display);font-weight:400;font-size:15px}
+.strip .plan{background:var(--card);color:var(--fg)}
+.strip .done{background:var(--accent);color:var(--accent-ink)}
+.strip .now{outline:2px solid var(--fg);outline-offset:-2px}
+.bottom{position:sticky;bottom:0;margin-top:auto;background:var(--bg);border-top:1px solid var(--line);
+  padding:12px 0 max(16px,env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px}
+.btn{height:56px;border:0;border-radius:16px;background:var(--accent);color:var(--accent-ink);font-family:var(--display);font-size:18px;cursor:pointer;width:100%;text-decoration:none;display:flex;align-items:center;justify-content:center}
+.btn.ghost{background:transparent;color:var(--fg);border:1.5px solid var(--line);font-family:var(--body);font-weight:700;font-size:15px;height:48px}
+.btn:focus-visible,.link:focus-visible,.dots:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ex{display:flex;flex-direction:column;gap:12px;padding:14px 8px 14px 16px}
+.exrow{display:flex;gap:8px;align-items:center}
+.exinfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mus{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.exname{font-weight:700;font-size:16px;line-height:21px}
+.wcol{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.wcol label{font-size:11px;font-weight:600;color:var(--muted)}
+.w{width:76px;height:44px;box-sizing:border-box;border:0;border-radius:12px;background:var(--field);font-family:var(--display);font-size:22px;text-align:center}
+.dots{width:36px;height:44px;border:0;border-radius:10px;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.edit{display:flex;flex-direction:column;gap:8px;padding:12px 8px 4px 0;border-top:1px solid var(--line)}
+.edit label{font-size:11px;font-weight:600;color:var(--muted)}
+.edit input{height:44px;box-sizing:border-box;border:0;border-radius:12px;background:var(--field);padding:0 12px;font-size:15px}
+.edit .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.edit .two input{font-family:var(--display);text-align:center;font-size:18px;width:100%}
+.okmsg{color:var(--ok);text-align:center;margin:0;font-size:14px}
+select{height:48px;border-radius:12px;background:var(--card);border:1px solid var(--line);padding:0 12px;width:100%}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.big{font-family:var(--display);font-size:30px}
+.big small{font-family:var(--body);font-size:15px;color:var(--muted)}
+.chart{width:100%;height:auto;display:block}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal .wd{font-size:11px;font-weight:600;color:var(--muted);text-align:center}
+.cal .c{height:48px;border-radius:10px;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;box-sizing:border-box}
+.cal .c b{font-size:13px}
+.cal .c i{font-style:normal;font-size:9px;font-weight:700}
+.cal .c.x{background:var(--accent);color:var(--accent-ink)}
+.cal .c.now{outline:2px solid var(--fg);outline-offset:-2px}
+.cal .c.empty{background:transparent}
+.monthnav{display:flex;align-items:center;justify-content:space-between}
+.navbtn{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:transparent;font-size:20px;cursor:pointer}
+.entry{display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px}
+.entry .d{font-family:var(--display);width:48px}
+.entry .k{flex:1;min-width:0;display:flex;flex-direction:column}
+.del{height:44px;padding:0 14px;border:1px solid #3a3f47;border-radius:12px;background:transparent;font-weight:600;font-size:13px;cursor:pointer}
+.del.sure{border-color:var(--accent);color:var(--accent)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
+.empty{color:var(--muted);margin:0}
+/* праздник */
+#party{position:fixed;inset:0;z-index:50;pointer-events:none;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(18,20,23,.55)}
+.cf{position:absolute;top:0;border-radius:2px;animation-name:fall;animation-timing-function:linear;animation-fill-mode:both}
+.pop{margin:0;padding:0 24px;font-family:var(--display);font-size:40px;line-height:46px;text-align:center;color:var(--accent);animation:pop .5s cubic-bezier(.2,.9,.3,1.3) both}
+@keyframes fall{0%{transform:translateY(-40px) rotate(0)}100%{transform:translateY(110vh) rotate(720deg)}}
+@keyframes pop{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.12);opacity:1}100%{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){.cf{display:none}.pop{animation:none}}
+.toast{position:fixed;left:50%;bottom:max(90px,calc(env(safe-area-inset-bottom,0px) + 90px));transform:translateX(-50%);background:var(--card);border:1px solid var(--line);padding:10px 16px;border-radius:12px;z-index:60;font-size:14px;max-width:90vw}
+</style>
+
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<div id="party" hidden aria-hidden="true"></div>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script>
+/* ===== Данные по умолчанию: ваша программа ===== */
+const DEFAULT_PROGRAM = { days: [
+  { id: 'd1', title: 'День 1', label: 'Верх тела', tag: 'В', weekday: 2, exercises: [
+    { id: 'a1', muscle: 'Грудь (верх)', name: 'Жим гантелей на наклонной', sets: 3, reps: 10 },
+    { id: 'a2', muscle: 'Спина', name: 'Тяга верхнего блока', sets: 3, reps: 10 },
+    { id: 'a3', muscle: 'Средняя дельта', name: 'Махи в стороны на блоке', sets: 4, reps: 10 },
+    { id: 'a4', muscle: 'Бицепс', name: 'Сгибания на наклонной скамье', sets: 3, reps: 10 },
+    { id: 'a5', muscle: 'Трицепс', name: 'Разгибания над головой на блоке', sets: 3, reps: 10 } ] },
+  { id: 'd2', title: 'День 2', label: 'Ноги + руки', tag: 'Н+Р', weekday: 4, exercises: [
+    { id: 'b1', muscle: 'Квадрицепс', name: 'Жим ногами', sets: 3, reps: 10 },
+    { id: 'b2', muscle: 'Ягодицы', name: 'Ягодичный мост', sets: 3, reps: 10 },
+    { id: 'b3', muscle: 'Бицепс бедра', name: 'Сгибания ног сидя', sets: 4, reps: 10 },
+    { id: 'b4', muscle: 'Средняя дельта', name: 'Махи в стороны с гантелями', sets: 3, reps: 10 },
+    { id: 'b5', muscle: 'Бицепс', name: 'Молотки', sets: 3, reps: 10 },
+    { id: 'b6', muscle: 'Трицепс', name: 'Разгибания на блоке', sets: 3, reps: 10 } ] },
+  { id: 'd3', title: 'День 3', label: 'Верх + ноги', tag: 'В+Н', weekday: 0, exercises: [
+    { id: 'c1', muscle: 'Грудь', name: 'Жим лёжа или брусья', sets: 3, reps: 10 },
+    { id: 'c2', muscle: 'Спина', name: 'Тяга в горизонтальном тренажёре', sets: 3, reps: 10 },
+    { id: 'c3', muscle: 'Средняя дельта', name: 'Махи в стороны', sets: 4, reps: 10 },
+    { id: 'c4', muscle: 'Бицепс', name: 'Сгибания «байесиан»', sets: 3, reps: 10 },
+    { id: 'c5', muscle: 'Трицепс', name: 'Французский жим', sets: 3, reps: 10 },
+    { id: 'c6', muscle: 'Бицепс бедра', name: 'Сгибания ног лёжа', sets: 3, reps: 10 },
+    { id: 'c7', muscle: 'Квадрицепс', name: 'Разгибания ног', sets: 3, reps: 10 } ] }
+] };
+
+/* ===== Хранение в памяти телефона ===== */
+const KEY = 'gymdiary.v1';
+let db = { program: JSON.parse(JSON.stringify(DEFAULT_PROGRAM)), sessions: [] };
+try { const raw = localStorage.getItem(KEY); if (raw) { const d = JSON.parse(raw); if (d && d.program && Array.isArray(d.sessions)) db = d; } } catch (e) {}
+function persist() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { toast('Не удалось сохранить: память браузера недоступна'); } }
+
+/* ===== Помощники ===== */
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = (n) => String(n).padStart(2, '0');
+const iso = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const today = () => iso(new Date());
+const parseISO = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const WD_SHORT = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+const WD_LONG = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
+const WD_CAP = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const dayById = (id) => db.program.days.find((d) => d.id === id);
+const fmtShort = (s) => { const d = parseISO(s); return pad(d.getDate()) + '.' + pad(d.getMonth() + 1); };
+const num = (v) => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) ? n : null; };
+const DOTS = '<svg width="4" height="18" viewBox="0 0 4 18" aria-hidden="true"><circle cx="2" cy="2" r="2" fill="#a3a8b0"/><circle cx="2" cy="9" r="2" fill="#a3a8b0"/><circle cx="2" cy="16" r="2" fill="#a3a8b0"/></svg>';
+let toastT;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2600); }
+
+/* ===== Маршруты: #week, #day-d1, #progress, #calendar ===== */
+let delEx = null;
+let openEdit = null, savedNote = null, calY, calM, delArm = null, progEx = null;
+function go(h) { if (location.hash === '#' + h) render(); else location.hash = h; }
+window.addEventListener('hashchange', () => { openEdit = null; delEx = null; savedNote = null; delArm = null; render(); window.scrollTo(0, 0); });
+
+function render() {
+  const h = (location.hash || '#week').slice(1);
+  if (h.startsWith('day-') && dayById(h.slice(4))) return renderDay(h.slice(4));
+  if (h === 'progress') return renderProgress();
+  if (h === 'calendar') return renderCalendar();
+  return renderWeek();
+}
+
+/* ===== Неделя ===== */
+function renderWeek() {
+  const now = new Date(), wd = now.getDay();
+  const monday = new Date(now); monday.setDate(now.getDate() - ((wd + 6) % 7));
+  const doneDates = new Set(db.sessions.map((s) => s.date));
+  const planWd = new Map(db.program.days.map((d) => [d.weekday, d]));
+  let strip = '';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday); d.setDate(monday.getDate() + i);
+    const p = planWd.get(d.getDay());
+    const cls = [doneDates.has(iso(d)) ? 'done' : (p ? 'plan' : ''), iso(d) === today() ? 'now' : ''].join(' ');
+    strip += `<div class="${cls}">${WD_SHORT[d.getDay()]}<b>${p ? esc(p.title.replace('День ', '')) : '—'}</b></div>`;
+  }
+  const days = db.program.days.map((d) => {
+    const isToday = d.weekday === wd;
+    return `<a class="card daycard ${isToday ? 'today' : ''}" href="#day-${d.id}">
+      <span class="eyebrow">${isToday ? 'Сегодня · ' : ''}${WD_CAP[d.weekday]}</span>
+      <span class="t">${esc(d.title)} · ${esc(d.label.toLowerCase())}</span>
+      <span class="muted">${d.exercises.length} упражнений · ${esc(d.exercises.map((e) => e.name).slice(0, 3).join(', '))}${d.exercises.length > 3 ? '…' : ''}</span></a>`;
+  }).join('');
+  $('#app').innerHTML = `<section class="screen">
+    <div class="top"><span class="eyebrow">Программа на массу</span></div>
+    <h1>Неделя</h1>
+    <p class="sub">${db.program.days.map((d) => WD_SHORT[d.weekday].toLowerCase()).join(', ')} · отмечено ${doneDates.size} трен. всего</p>
+    <div class="stack"><div class="strip" aria-label="Эта неделя">${strip}</div>${days}
+      <a class="link" href="#progress">Прогресс по упражнениям</a>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="link" id="exp" type="button">Сохранить копию данных</button>
+        <label class="link" for="imp" style="cursor:pointer">Загрузить копию</label>
+        <input id="imp" type="file" accept="application/json,.json" hidden>
+      </div>
+    </div>
+    <div class="bottom"><a class="btn" href="#calendar">Календарь</a></div>
+  </section>`;
+  $('#exp').onclick = exportData;
+  $('#imp').onchange = importData;
+}
+
+/* ===== День тренировки ===== */
+function sessionFor(dayId, date) { return db.sessions.find((s) => s.day === dayId && s.date === date); }
+function renderDay(id) {
+  const d = dayById(id), s = sessionFor(id, today());
+  const cards = d.exercises.map((e) => {
+    const w = s && s.weights[e.id] != null ? s.weights[e.id] : '';
+    const ed = openEdit === e.id ? `<div class="edit">
+        <label for="m-${e.id}">Мышечная группа</label>
+        <input id="m-${e.id}" type="text" value="${esc(e.muscle)}" data-f="muscle" data-ex="${e.id}">
+        <label for="n-${e.id}">Название упражнения</label>
+        <input id="n-${e.id}" type="text" value="${esc(e.name)}" data-f="name" data-ex="${e.id}">
+        <div class="two">
+          <div style="display:flex;flex-direction:column;gap:4px"><label for="s-${e.id}">Подходы</label><input id="s-${e.id}" type="number" inputmode="numeric" min="1" step="1" value="${e.sets}" data-f="sets" data-ex="${e.id}"></div>
+          <div style="display:flex;flex-direction:column;gap:4px"><label for="r-${e.id}">Повторения</label><input id="r-${e.id}" type="number" inputmode="numeric" min="1" step="1" value="${e.reps}" data-f="reps" data-ex="${e.id}"></div>
+        </div>
+        <button class="btn ghost" type="button" data-close>Готово</button>
+        <button class="del ${delEx === e.id ? 'sure' : ''}" type="button" data-delex="${e.id}" style="height:44px">${delEx === e.id ? 'Точно удалить? Нажмите ещё раз' : 'Удалить упражнение'}</button></div>` : '';
+    return `<div class="card ex"><div class="exrow">
+        <div class="exinfo"><span class="mus">${esc(e.muscle)}</span><span class="exname">${esc(e.name)}</span><span class="muted">${e.sets} подх. × ${e.reps} повт.</span></div>
+        <div class="wcol"><label for="w-${e.id}">Рабочий вес</label><div style="display:flex;align-items:baseline;gap:4px"><input class="w" id="w-${e.id}" type="number" inputmode="decimal" min="0" step="0.5" placeholder="—" value="${esc(w)}" data-w="${e.id}"><span class="muted">кг</span></div></div>
+        <button class="dots" type="button" aria-label="Изменить упражнение ${esc(e.name)}" aria-expanded="${openEdit === e.id}" data-edit="${e.id}">${DOTS}</button>
+      </div>${ed}</div>`;
+  }).join('');
+  $('#app').innerHTML = `<section class="screen">
+    <div class="top"><a class="link" href="#week">← Неделя</a><span class="eyebrow">${WD_CAP[d.weekday]}</span></div>
+    <h1>${esc(d.title)}</h1><p class="sub">${esc(d.label)} · ${d.exercises.length} упражнений</p>
+    <div class="stack">${cards}
+      <button class="btn ghost" type="button" id="addex">+ Добавить упражнение</button>
+      <a class="link" href="#progress">Смотреть прогресс по упражнениям</a></div>
+    <div class="bottom">${savedNote ? `<p class="okmsg">${esc(savedNote)}</p>` : (s ? '<p class="okmsg">Сегодня уже сохранено. Можно поправить и сохранить ещё раз.</p>' : '')}
+      <button class="btn" type="button" id="save">Сохранить тренировку</button></div>
+  </section>`;
+  document.querySelectorAll('[data-edit]').forEach((b) => b.onclick = () => { delEx = null; openEdit = openEdit === b.dataset.edit ? null : b.dataset.edit; keepWeightsThen(() => renderDay(id)); });
+  document.querySelectorAll('[data-close]').forEach((b) => b.onclick = () => { openEdit = null; delEx = null; keepWeightsThen(() => renderDay(id)); });
+  document.querySelectorAll('[data-delex]').forEach((b) => b.onclick = () => {
+    const exId = b.dataset.delex;
+    if (delEx !== exId) { delEx = exId; keepWeightsThen(() => renderDay(id)); return; }
+    const gone = d.exercises.find((x) => x.id === exId);
+    d.exercises = d.exercises.filter((x) => x.id !== exId);
+    delEx = null; openEdit = null; persist();
+    keepWeightsThen(() => renderDay(id)); toast('Упражнение «' + gone.name + '» удалено');
+  });
+  $('#addex').onclick = () => {
+    const nid = 'x' + Date.now().toString(36);
+    d.exercises.push({ id: nid, muscle: 'Мышечная группа', name: 'Новое упражнение', sets: 3, reps: 10 });
+    openEdit = nid; delEx = null; persist();
+    keepWeightsThen(() => renderDay(id));
+    const n = document.getElementById('n-' + nid); if (n) { n.focus(); n.select(); n.scrollIntoView({ block: 'center' }); }
+  };
+  document.querySelectorAll('[data-f]').forEach((inp) => inp.onchange = () => {
+    const ex = d.exercises.find((x) => x.id === inp.dataset.ex), f = inp.dataset.f;
+    if (f === 'name' || f === 'muscle') { const v = inp.value.trim(); if (v) ex[f] = v; }
+    else { const v = parseInt(inp.value, 10); if (v > 0) ex[f] = v; }
+    persist();
+  });
+  $('#save').onclick = () => {
+    const weights = {};
+    document.querySelectorAll('[data-w]').forEach((i) => { const v = num(i.value); if (v != null && v >= 0) weights[i.dataset.w] = v; });
+    const n = Object.keys(weights).length;
+    if (!n) { toast('Впишите хотя бы один рабочий вес'); return; }
+    const ex = sessionFor(id, today());
+    if (ex) ex.weights = weights; else db.sessions.push({ date: today(), day: id, weights });
+    persist();
+    savedNote = `Сохранено: записано ${n} из ${d.exercises.length}. Запись в календаре — ${fmtShort(today())}.`;
+    renderDay(id); celebrate();
+  };
+}
+// при перерисовке не теряем недописанные веса
+let draft = {};
+function keepWeightsThen(fn) { document.querySelectorAll('[data-w]').forEach((i) => { draft[i.dataset.w] = i.value; }); fn(); document.querySelectorAll('[data-w]').forEach((i) => { if (draft[i.dataset.w] != null) i.value = draft[i.dataset.w]; }); }
+window.addEventListener('hashchange', () => { draft = {}; });
+
+/* ===== Праздник ===== */
+let partyT;
+function celebrate() {
+  const p = $('#party'), colors = ['#ff6a3d', '#f2c14e', '#8fd4a8', '#7ea6e6', '#f2f2ee'];
+  let html = '';
+  for (let i = 0; i < 48; i++) {
+    html += `<span class="cf" style="left:${(i * 37) % 100}%;width:${6 + (i % 3) * 3}px;height:${10 + (i % 4) * 2}px;background:${colors[i % 5]};animation-duration:${(1.6 + (i % 5) * 0.25).toFixed(2)}s;animation-delay:${((i % 12) * 0.08).toFixed(2)}s"></span>`;
+  }
+  p.innerHTML = html + '<p class="pop">Красавчик,<br>так держать!</p>';
+  p.hidden = false;
+  try { navigator.vibrate && navigator.vibrate([60, 40, 60]); } catch (e) {}
+  clearTimeout(partyT); partyT = setTimeout(() => { p.hidden = true; p.innerHTML = ''; }, 2800);
+}
+
+/* ===== Прогресс ===== */
+function allExercises() { return db.program.days.flatMap((d) => d.exercises.map((e) => ({ ...e, day: d }))); }
+function renderProgress() {
+  const list = allExercises();
+  if (!progEx || !list.some((e) => e.id === progEx)) {
+    const withData = list.find((e) => db.sessions.some((s) => s.weights[e.id] != null));
+    progEx = (withData || list[0]).id;
+  }
+  const ex = list.find((e) => e.id === progEx);
+  const pts = db.sessions.filter((s) => s.weights[ex.id] != null).sort((a, b) => a.date.localeCompare(b.date)).slice(-10).map((s) => ({ date: s.date, v: s.weights[ex.id] }));
+  const opts = db.program.days.map((d) => `<optgroup label="${esc(d.title + ' · ' + d.label)}">${d.exercises.map((e) => `<option value="${e.id}" ${e.id === progEx ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}</optgroup>`).join('');
+  let body;
+  if (!pts.length) body = '<p class="empty">По этому упражнению пока нет записей. Впишите вес на экране тренировки и нажмите «Сохранить тренировку».</p>';
+  else {
+    const last = pts[pts.length - 1].v, diff = last - pts[0].v;
+    body = `<div class="stats"><div class="card"><span class="muted">Сейчас</span><div class="big">${last} <small>кг</small></div></div>
+      <div class="card"><span class="muted">С первой записи</span><div class="big" style="color:${diff > 0 ? 'var(--accent)' : 'var(--fg)'}">${diff > 0 ? '+' : ''}${+diff.toFixed(1)} <small>кг</small></div></div></div>
+      <div class="card"><span class="muted">Рабочий вес по тренировкам, кг</span>${chart(pts)}</div>`;
+  }
+  $('#app').innerHTML = `<section class="screen">
+    <div class="top"><a class="link" href="#week">← Неделя</a></div>
+    <h1>Прогресс</h1>
+    <div class="stack"><label class="eyebrow" for="pick">Упражнение</label><select id="pick">${opts}</select>
+      <p class="sub" style="margin-top:-4px">${esc(ex.muscle)} · ${ex.sets} подх. × ${ex.reps} повт.</p>${body}</div>
+  </section>`;
+  $('#pick').onchange = (e) => { progEx = e.target.value; renderProgress(); };
+}
+function chart(pts) {
+  const W = 340, H = 210, base = 182, top = 40, max = Math.max(...pts.map((p) => p.v)) || 1;
+  const slot = (W - 20) / pts.length, bw = Math.min(40, slot * 0.62);
+  let g = `<line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="#3a3f47"/>`;
+  pts.forEach((p, i) => {
+    const h = Math.max(4, (p.v / max) * (base - top)), x = 10 + slot * i + (slot - bw) / 2, last = i === pts.length - 1;
+    g += `<rect x="${x.toFixed(1)}" y="${(base - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="6" fill="#ff6a3d" opacity="${last ? 1 : 0.55}"/>`;
+    g += `<text x="${(x + bw / 2).toFixed(1)}" y="${(base - h - 6).toFixed(1)}" font-size="${last ? 12 : 11}" font-weight="${last ? 700 : 400}" fill="${last ? '#ff6a3d' : '#f2f2ee'}" text-anchor="middle" font-family="Manrope,sans-serif">${p.v}</text>`;
+    g += `<text x="${(x + bw / 2).toFixed(1)}" y="202" font-size="10" fill="#a3a8b0" text-anchor="middle" font-family="Manrope,sans-serif">${fmtShort(p.date)}</text>`;
+  });
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Рабочий вес: ${pts.map((p) => fmtShort(p.date) + ' — ' + p.v + ' кг').join(', ')}">${g}</svg>`;
+}
+
+/* ===== Календарь ===== */
+function renderCalendar() {
+  const now = new Date();
+  if (calY == null) { calY = now.getFullYear(); calM = now.getMonth(); }
+  const first = new Date(calY, calM, 1), total = new Date(calY, calM + 1, 0).getDate(), offset = (first.getDay() + 6) % 7;
+  const ym = calY + '-' + pad(calM + 1);
+  const inMonth = db.sessions.filter((s) => s.date.startsWith(ym)).sort((a, b) => b.date.localeCompare(a.date) || a.day.localeCompare(b.day));
+  const byDate = {};
+  inMonth.forEach((s) => { (byDate[s.date] = byDate[s.date] || []).push(s); });
+  let cells = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map((w) => `<span class="wd">${w}</span>`).join('');
+  for (let i = 0; i < offset; i++) cells += '<div class="c empty"></div>';
+  for (let d = 1; d <= total; d++) {
+    const key = ym + '-' + pad(d), ss = byDate[key];
+    const tag = ss ? ss.map((s) => (dayById(s.day) || {}).tag || '•').join(' ') : '';
+    cells += `<div class="c ${ss ? 'x' : ''} ${key === today() ? 'now' : ''}"><b>${d}</b><i>${esc(tag)}</i></div>`;
+  }
+  const entries = inMonth.length ? inMonth.map((s) => {
+    const day = dayById(s.day) || { label: 'Тренировка', title: '' }, k = s.date + '|' + s.day, n = Object.keys(s.weights).length;
+    return `<div class="card entry"><span class="d">${fmtShort(s.date)}</span><span class="k"><b>${esc(day.label)}</b><span class="muted">${WD_LONG[parseISO(s.date).getDay()]} · ${n} упр.</span></span>
+      <button class="del ${delArm === k ? 'sure' : ''}" type="button" data-del="${esc(k)}" aria-label="Удалить запись за ${fmtShort(s.date)}">${delArm === k ? 'Точно?' : 'Удалить'}</button></div>`;
+  }).join('') : '<p class="empty">В этом месяце записей нет. Сохраните тренировку, и она появится здесь.</p>';
+  $('#app').innerHTML = `<section class="screen">
+    <div class="top"><a class="link" href="#week">← Неделя</a><span class="muted">${inMonth.length} трен.</span></div>
+    <div class="monthnav"><button class="navbtn" type="button" id="prev" aria-label="Предыдущий месяц">‹</button><h1 style="margin:0">${MONTHS[calM]} ${calY}</h1><button class="navbtn" type="button" id="next" aria-label="Следующий месяц">›</button></div>
+    <div class="stack"><div class="cal">${cells}</div>
+      <div class="legend">${db.program.days.map((d) => `<span>${esc(d.tag)} — ${esc(d.label.toLowerCase())}</span>`).join('')}</div>${entries}</div>
+  </section>`;
+  $('#prev').onclick = () => { calM--; if (calM < 0) { calM = 11; calY--; } delArm = null; renderCalendar(); };
+  $('#next').onclick = () => { calM++; if (calM > 11) { calM = 0; calY++; } delArm = null; renderCalendar(); };
+  document.querySelectorAll('[data-del]').forEach((b) => b.onclick = () => {
+    const k = b.dataset.del;
+    if (delArm !== k) { delArm = k; renderCalendar(); return; }
+    const [date, day] = k.split('|');
+    db.sessions = db.sessions.filter((s) => !(s.date === date && s.day === day));
+    persist(); delArm = null; renderCalendar(); toast('Запись удалена');
+  });
+}
+
+/* ===== Копия данных ===== */
+function exportData() {
+  const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'dnevnik-trenirovok-' + today() + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  toast('Файл с копией данных сохранён');
+}
+function importData(e) {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      if (!d || !d.program || !Array.isArray(d.program.days) || !Array.isArray(d.sessions)) throw new Error('bad');
+      db = d; persist(); render(); toast('Данные загружены');
+    } catch (err) { toast('Это не файл копии дневника'); }
+  };
+  r.readAsText(f);
+}
+
+/* ===== Запуск ===== */
+render();
+if ('serviceWorker' in navigator && location.protocol === 'https:' && !/claude\.ai|claudeusercontent/.test(location.host)) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+</script>
+
+</body>
+</html>
