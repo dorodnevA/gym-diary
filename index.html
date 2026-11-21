@@ -152,10 +152,10 @@ let toastT;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2600); }
 
 /* ===== Маршруты: #week, #day-d1, #progress, #calendar ===== */
-let delEx = null;
+let delEx = null, weekEdit = false, dayEdit = false;
 let openEdit = null, savedNote = null, calY, calM, delArm = null, progEx = null;
 function go(h) { if (location.hash === '#' + h) render(); else location.hash = h; }
-window.addEventListener('hashchange', () => { openEdit = null; delEx = null; savedNote = null; delArm = null; render(); window.scrollTo(0, 0); });
+window.addEventListener('hashchange', () => { openEdit = null; delEx = null; weekEdit = false; dayEdit = false; savedNote = null; delArm = null; render(); window.scrollTo(0, 0); });
 
 function render() {
   const h = (location.hash || '#week').slice(1);
@@ -170,15 +170,17 @@ function renderWeek() {
   const now = new Date(), wd = now.getDay();
   const monday = new Date(now); monday.setDate(now.getDate() - ((wd + 6) % 7));
   const doneDates = new Set(db.sessions.map((s) => s.date));
-  const planWd = new Map(db.program.days.map((d) => [d.weekday, d]));
+  const planWd = new Map();
+  db.program.days.forEach((d) => { if (!planWd.has(d.weekday)) planWd.set(d.weekday, []); planWd.get(d.weekday).push(d); });
   let strip = '';
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday); d.setDate(monday.getDate() + i);
     const p = planWd.get(d.getDay());
     const cls = [doneDates.has(iso(d)) ? 'done' : (p ? 'plan' : ''), iso(d) === today() ? 'now' : ''].join(' ');
-    strip += `<div class="${cls}">${WD_SHORT[d.getDay()]}<b>${p ? esc(p.title.replace('День ', '')) : '—'}</b></div>`;
+    strip += `<div class="${cls}">${WD_SHORT[d.getDay()]}<b>${p ? esc(p.map((x) => x.title.replace('День ', '')).join(',')) : '—'}</b></div>`;
   }
-  const days = db.program.days.map((d) => {
+  const sorted = db.program.days.slice().sort((a, b) => WD_ORDER.indexOf(a.weekday) - WD_ORDER.indexOf(b.weekday));
+  const days = sorted.map((d) => {
     const isToday = d.weekday === wd;
     return `<a class="card daycard ${isToday ? 'today' : ''}" href="#day-${d.id}">
       <span class="eyebrow">${isToday ? 'Сегодня · ' : ''}${WD_CAP[d.weekday]}</span>
@@ -188,8 +190,11 @@ function renderWeek() {
   $('#app').innerHTML = `<section class="screen">
     <div class="top"><span class="eyebrow">Программа на массу</span></div>
     <h1>Неделя</h1>
-    <p class="sub">${db.program.days.map((d) => WD_SHORT[d.weekday].toLowerCase()).join(', ')} · отмечено ${doneDates.size} трен. всего</p>
-    <div class="stack"><div class="strip" aria-label="Эта неделя">${strip}</div>${days}
+    <p class="sub">${sorted.map((d) => WD_SHORT[d.weekday].toLowerCase()).join(', ')} · отмечено ${doneDates.size} трен. всего</p>
+    <div class="stack"><div class="strip" aria-label="Эта неделя">${strip}</div>
+      <button class="link" type="button" id="wdtoggle" aria-expanded="${weekEdit}">${weekEdit ? 'Готово' : 'Настроить дни недели'}</button>
+      ${weekEdit ? `<div class="card edit" style="padding:14px 16px">${db.program.days.map((d) => `<label for="wd-${d.id}">${esc(d.title)} · ${esc(d.label)}</label>${wdSelect('wd-' + d.id, d.weekday, 'data-wd="' + d.id + '"')}`).join('')}</div>` : ''}
+      ${days}
       <a class="link" href="#progress">Прогресс по упражнениям</a>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="link" id="exp" type="button">Сохранить копию данных</button>
@@ -199,16 +204,28 @@ function renderWeek() {
     </div>
     <div class="bottom"><a class="btn" href="#calendar">Календарь</a></div>
   </section>`;
+  $('#wdtoggle').onclick = () => { weekEdit = !weekEdit; renderWeek(); };
+  document.querySelectorAll('[data-wd]').forEach((sel) => sel.onchange = () => { dayById(sel.dataset.wd).weekday = parseInt(sel.value, 10); persist(); renderWeek(); });
   $('#exp').onclick = exportData;
   $('#imp').onchange = importData;
 }
 
 /* ===== День тренировки ===== */
 function sessionFor(dayId, date) { return db.sessions.find((s) => s.day === dayId && s.date === date); }
+// последний сохранённый вес упражнения: из самой свежей тренировки, где он есть
+function lastWeight(exId) {
+  let best = null;
+  db.sessions.forEach((s) => { if (s.weights[exId] != null && (!best || s.date > best.date)) best = s; });
+  return best ? best.weights[exId] : '';
+}
+const WD_ORDER = [1, 2, 3, 4, 5, 6, 0];
+function wdSelect(id, value, attrs) {
+  return `<select id="${id}" ${attrs}>${WD_ORDER.map((w) => `<option value="${w}" ${w === value ? 'selected' : ''}>${WD_CAP[w]}</option>`).join('')}</select>`;
+}
 function renderDay(id) {
   const d = dayById(id), s = sessionFor(id, today());
   const cards = d.exercises.map((e) => {
-    const w = s && s.weights[e.id] != null ? s.weights[e.id] : '';
+    const w = s && s.weights[e.id] != null ? s.weights[e.id] : lastWeight(e.id);
     const ed = openEdit === e.id ? `<div class="edit">
         <label for="m-${e.id}">Мышечная группа</label>
         <input id="m-${e.id}" type="text" value="${esc(e.muscle)}" data-f="muscle" data-ex="${e.id}">
@@ -228,13 +245,27 @@ function renderDay(id) {
   }).join('');
   $('#app').innerHTML = `<section class="screen">
     <div class="top"><a class="link" href="#week">← Неделя</a><span class="eyebrow">${WD_CAP[d.weekday]}</span></div>
-    <h1>${esc(d.title)}</h1><p class="sub">${esc(d.label)} · ${d.exercises.length} упражнений</p>
+    <div class="exrow"><div class="exinfo"><h1>${esc(d.title)}</h1><p class="sub">${esc(d.label)} · ${d.exercises.length} упражнений</p></div>
+      <button class="dots" type="button" id="dayedit" aria-label="Настроить день" aria-expanded="${dayEdit}">${DOTS}</button></div>
+    ${dayEdit ? `<div class="card edit" style="padding:14px 16px;margin-top:10px">
+      <label for="dl">Описание дня</label><input id="dl" type="text" value="${esc(d.label)}" data-day="label">
+      <label for="dt">Пометка в календаре (коротко)</label><input id="dt" type="text" maxlength="5" value="${esc(d.tag)}" data-day="tag">
+      <label for="dw">День недели</label>${wdSelect('dw', d.weekday, 'data-day="weekday"')}
+      <button class="btn ghost" type="button" id="dayclose">Готово</button></div>` : ''}
     <div class="stack">${cards}
       <button class="btn ghost" type="button" id="addex">+ Добавить упражнение</button>
       <a class="link" href="#progress">Смотреть прогресс по упражнениям</a></div>
     <div class="bottom">${savedNote ? `<p class="okmsg">${esc(savedNote)}</p>` : (s ? '<p class="okmsg">Сегодня уже сохранено. Можно поправить и сохранить ещё раз.</p>' : '')}
       <button class="btn" type="button" id="save">Сохранить тренировку</button></div>
   </section>`;
+  $('#dayedit').onclick = () => { dayEdit = !dayEdit; keepWeightsThen(() => renderDay(id)); };
+  const dc = $('#dayclose'); if (dc) dc.onclick = () => { dayEdit = false; keepWeightsThen(() => renderDay(id)); };
+  document.querySelectorAll('[data-day]').forEach((inp) => inp.onchange = () => {
+    const f = inp.dataset.day;
+    if (f === 'weekday') d.weekday = parseInt(inp.value, 10);
+    else { const v = inp.value.trim(); if (v) d[f] = v; }
+    persist(); keepWeightsThen(() => renderDay(id));
+  });
   document.querySelectorAll('[data-edit]').forEach((b) => b.onclick = () => { delEx = null; openEdit = openEdit === b.dataset.edit ? null : b.dataset.edit; keepWeightsThen(() => renderDay(id)); });
   document.querySelectorAll('[data-close]').forEach((b) => b.onclick = () => { openEdit = null; delEx = null; keepWeightsThen(() => renderDay(id)); });
   document.querySelectorAll('[data-delex]').forEach((b) => b.onclick = () => {
